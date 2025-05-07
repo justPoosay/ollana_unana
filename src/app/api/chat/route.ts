@@ -1,24 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
+import { generateResponse } from "@/services/ollama";
 
-export async function POST(req: NextRequest) {
-  const { prompt } = await req.json()
+export async function POST(request: Request) {
+  try {
+    const { message, history } = await request.json();
 
-  const response = await fetch('http://localhost:11434/api/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama2', // lub inny model, który masz pobrany
-      prompt,
-      stream: false, // ważne: na razie bez streamowania
-    }),
-  })
+    if (!message) {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
+    }
 
-  if (!response.ok) {
-    return NextResponse.json({ response: 'Błąd podczas komunikacji z Ollama' }, { status: 500 })
+    const response = await generateResponse(message, history);
+    return NextResponse.json({ response });
+  } catch (error) {
+    console.error("Error in chat API:", error);
+    return NextResponse.json(
+      { error: "Failed to process request" },
+      { status: 500 }
+    );
   }
-
-  const data = await response.json()
-  return NextResponse.json({ response: data.response })
 }
